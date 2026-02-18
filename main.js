@@ -3,6 +3,7 @@ class BoxEstimator extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this.files = [];
+    this.analysisResult = null;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -56,6 +57,11 @@ class BoxEstimator extends HTMLElement {
 
         /* --- Wizard --- */
         #wizard { display: none; margin-top: 2rem; text-align: left; }
+        #ai-summary {
+            background-color: #e9f5ff; padding: 1rem;
+            border-radius: 8px; margin-bottom: 1.5rem;
+            border-left: 5px solid var(--primary-color);
+        }
         .form-group { margin-bottom: 1.5rem; }
         .form-group label { display: block; font-weight: 700; margin-bottom: 0.5rem; color: #333; }
         .form-group select {
@@ -117,29 +123,15 @@ class BoxEstimator extends HTMLElement {
             <button id="next-btn" class="button" disabled>
               <div class="button-content">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-1.125 0-2.25 1.125-2.25 2.25v15c0 1.125 1.125 2.25 2.25 2.25h10.5c1.125 0 2.25-1.125 2.25-2.25v-15c0-1.125-1.125-2.25-2.25-2.25h-4.5m-7.5 15l4.125-4.125a3.375 3.375 0 015.25 0L21 18.75m-18 0h18" /></svg>
-                <span>アップロードして次へ</span>
+                <span>画像から冊数を分析</span>
               </div>
               <div class="spinner hidden"></div>
             </button>
         </div>
 
         <div id="wizard">
-          <div class="form-group">
-            <label for="book-size">本の主なサイズを選択してください</label>
-            <select id="book-size">
-              <option value="paperback">文庫本 (A6) - 10.5cm × 14.8cm</option>
-              <option value="hardcover" selected>単行本・ハードカバー (B6) - 12.8cm × 18.2cm</option>
-              <option value="magazine">雑誌・大型本 (A4) - 21.0cm × 29.7cm</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="book-thickness">本の平均的な厚さを選択してください</label>
-            <select id="book-thickness">
-              <option value="thin">薄い (約1.5cm)</option>
-              <option value="medium" selected>普通 (約2.5cm)</option>
-              <option value="thick">厚い (約4cm)</option>
-            </select>
-          </div>
+          <div id="ai-summary"></div>
+          <div id="thickness-inputs"></div>
           <button id="calculate-btn" class="button">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0-2.25l2.25 1.313M4.5 9.75l-2.25 1.313M4.5 9.75v2.25m15-2.25l-2.25 1.313m-12.75 0l2.25-1.313M4.5 12l2.25 1.313M19.5 12l-2.25 1.313m-12.75 0l2.25 1.313m10.5-3.937V4.5m-10.5 3.937V4.5" /></svg>
               <span>箱の数を計算する</span>
@@ -151,6 +143,33 @@ class BoxEstimator extends HTMLElement {
     `;
   }
 
+  // --- Mock Vision API Call ---
+  async callVisionApi(files) {
+    console.log("Simulating Vision API call...");
+    // In a real scenario, you'd send files to a server/cloud function
+    // that calls the Gemini API. Here, we just count them.
+    const fileCount = files.length;
+    
+    // Simulate a network delay
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Simulate the AI's response based on file count
+    // This is a placeholder for a real AI's object detection result
+    const result = {};
+    if (fileCount > 0) {
+      result.paperback = Math.ceil(fileCount * 0.5);
+    }
+    if (fileCount > 3) {
+      result.hardcover = Math.floor(fileCount * 0.3);
+    }
+    if (fileCount > 8) {
+      result.magazine = fileCount - (result.paperback + result.hardcover);
+    }
+    
+    console.log("Simulated API response:", result);
+    return result;
+  }
+
   connectedCallback() {
     // --- Element Refs ---
     const fileInput = this.shadowRoot.querySelector('#file-input');
@@ -159,15 +178,14 @@ class BoxEstimator extends HTMLElement {
     const resultDiv = this.shadowRoot.querySelector('#result');
     const previewGrid = this.shadowRoot.querySelector('#preview-grid');
     const dropZone = this.shadowRoot.querySelector('#drop-zone');
-    const progressContainer = this.shadowRoot.querySelector('#progress-container');
-    const progressBar = this.shadowRoot.querySelector('#progress-bar');
     const nextBtnContent = this.shadowRoot.querySelector('#next-btn .button-content');
     const nextBtnSpinner = this.shadowRoot.querySelector('#next-btn .spinner');
+    const nextBtnText = this.shadowRoot.querySelector('#next-btn span');
     const uploadArea = this.shadowRoot.querySelector('#upload-area');
     const wizard = this.shadowRoot.querySelector('#wizard');
-    const bookSizeSelect = this.shadowRoot.querySelector('#book-size');
-    const bookThicknessSelect = this.shadowRoot.querySelector('#book-thickness');
-
+    const aiSummary = this.shadowRoot.querySelector('#ai-summary');
+    const thicknessInputs = this.shadowRoot.querySelector('#thickness-inputs');
+    
     // --- Logic ---
     const updateFileList = () => {
       previewGrid.innerHTML = '';
@@ -193,6 +211,49 @@ class BoxEstimator extends HTMLElement {
         updateFileList();
     }
     
+    const displayWizard = (analysisResult) => {
+      this.analysisResult = analysisResult;
+      uploadArea.style.display = 'none';
+      wizard.style.display = 'block';
+
+      const bookTypes = {
+        paperback: '文庫本',
+        hardcover: '単行本・ハードカバー',
+        magazine: '雑誌・大型本',
+      };
+      
+      let summaryHtml = '<strong>AIによる分析結果:</strong><br>';
+      let hasBooks = false;
+      thicknessInputs.innerHTML = ''; // Clear previous inputs
+
+      for (const type in analysisResult) {
+        const count = analysisResult[type];
+        if (count > 0) {
+          hasBooks = true;
+          summaryHtml += `・${bookTypes[type] || type}: ${count}冊<br>`;
+          
+          const formGroup = document.createElement('div');
+          formGroup.className = 'form-group';
+          formGroup.innerHTML = `
+            <label for="thickness-${type}">${bookTypes[type]} の平均的な厚さ</label>
+            <select id="thickness-${type}" data-book-type="${type}">
+              <option value="thin">薄い (約1.5cm)</option>
+              <option value="medium" selected>普通 (約2.5cm)</option>
+              <option value="thick">厚い (約4cm)</option>
+            </select>
+          `;
+          thicknessInputs.appendChild(formGroup);
+        }
+      }
+
+      if (!hasBooks) {
+        summaryHtml = '本を認識できませんでした。手動で入力してください。';
+        // Optionally, show a manual input form here
+      }
+      
+      aiSummary.innerHTML = summaryHtml;
+    };
+    
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
     dropZone.addEventListener('drop', (e) => {
@@ -211,53 +272,30 @@ class BoxEstimator extends HTMLElement {
       }
 
       nextBtn.disabled = true;
+      nextBtnText.textContent = '画像分析中...';
       nextBtnContent.classList.add('hidden');
       nextBtnSpinner.classList.remove('hidden');
       resultDiv.classList.remove('visible');
-      progressContainer.style.display = 'block';
-      progressBar.value = 0;
-
-      const uploadTasks = this.files.map(file => ({
-          task: storage.ref(`uploads/${Date.now()}-${file.name}`).put(file),
-          size: file.size
-      }));
-      
-      let totalBytes = uploadTasks.reduce((acc, t) => acc + t.size, 0);
-      
-      const promises = uploadTasks.map(upload => {
-        return new Promise((resolve, reject) => {
-          upload.task.on('state_changed',
-            (snapshot) => {
-              let totalTransferred = uploadTasks.reduce((acc, t) => acc + t.task.snapshot.bytesTransferred, 0);
-              progressBar.value = (totalTransferred / totalBytes) * 100;
-            },
-            reject,
-            resolve
-          );
-        });
-      });
 
       try {
-        await Promise.all(promises);
-        uploadArea.style.display = 'none';
-        wizard.style.display = 'block';
+        const analysis = await this.callVisionApi(this.files);
+        displayWizard(analysis);
       } catch (error) {
-        console.error("Upload failed:", error);
+        console.error("Analysis failed:", error);
         resultDiv.style.color = '#e74c3c';
-        resultDiv.textContent = 'エラー: ファイルのアップロードに失敗しました。';
+        resultDiv.textContent = 'エラー: 画像の分析に失敗しました。';
         resultDiv.classList.add('visible');
         nextBtn.disabled = false;
-        progressContainer.style.display = 'none';
       } finally {
         nextBtnContent.classList.remove('hidden');
         nextBtnSpinner.classList.add('hidden');
+        nextBtnText.textContent = '画像から冊数を分析';
       }
     });
 
     calculateBtn.addEventListener('click', () => {
-        const bookCount = this.files.length;
-        const bookSize = bookSizeSelect.value;
-        const bookThickness = bookThicknessSelect.value;
+        let totalBookVolume = 0;
+        const thicknessSelectors = thicknessInputs.querySelectorAll('select');
 
         const bookDimensions = {
             paperback: { w: 10.5, h: 14.8 },
@@ -270,10 +308,23 @@ class BoxEstimator extends HTMLElement {
             thick: 4.0,
         };
 
-        const book = bookDimensions[bookSize];
-        const thickness = thicknessValues[bookThickness];
-        const singleBookVolume = book.w * book.h * thickness;
-        const totalBookVolume = singleBookVolume * bookCount;
+        thicknessSelectors.forEach(select => {
+            const bookType = select.dataset.bookType;
+            const bookCount = this.analysisResult[bookType];
+            const thicknessKey = select.value;
+
+            const book = bookDimensions[bookType];
+            const thickness = thicknessValues[thicknessKey];
+            const singleBookVolume = book.w * book.h * thickness;
+            totalBookVolume += singleBookVolume * bookCount;
+        });
+
+        if (totalBookVolume === 0) {
+            resultDiv.textContent = '有効な本の情報がありません。';
+            resultDiv.style.color = '#e74c3c';
+            resultDiv.classList.add('visible');
+            return;
+        }
 
         // 一般的な100サイズの箱: 38cm x 27cm x 29cm
         const boxVolume = 38 * 27 * 29;
