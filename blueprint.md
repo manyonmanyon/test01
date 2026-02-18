@@ -1,28 +1,32 @@
+# 引っ越し見積もりアプリ ブループリント
 
-# Lotto Number Picker
+## 概要
 
-## Overview
+このアプリケーションは、ユーザーが引っ越しの準備を円滑に進めるための支援ツールです。写真や情報を入力することで、必要な資材（例：段ボール箱の数）や大まかな費用を見積もることができます。
 
-A simple, visually appealing web application to generate random lottery numbers. The application will feature a clean, modern interface and provide an engaging user experience.
+## 実装済み機能
 
-## Project Outline
+- **初期セットアップ:**
+  - HTML, CSS, JavaScriptの基本的なプロジェクト構造
+  - GitリポジトリとGitHubへの接続
 
-### Design and Style
+## 現在の計画：箱の数予測機能
 
-*   **Layout:** A centered, card-based design that is responsive and works well on both desktop and mobile devices.
-*   **Color Palette:** A vibrant and energetic color scheme will be used to create a visually engaging experience.
-*   **Typography:** Expressive and clear typography will be used to enhance readability and visual hierarchy.
-*   **Iconography:** Icons will be used to improve user understanding and navigation.
-*   **Visual Effects:** Subtle animations and shadows will be used to create a sense of depth and interactivity.
+### 目的
 
-### Features
+ユーザーが本や食器などの荷物の写真をアップロードすると、それらを梱包するために必要な段ボール箱の数を予測して表示する。
 
-*   **Number Generation:** Generate a set of random, unique numbers for the lottery drawing.
-*   **Responsive Design:** The application will be fully responsive and accessible on a variety of devices.
-*   **Modern UI:** A clean and modern user interface will provide a seamless and enjoyable user experience.
+### 実装ステップ
 
-## Current Plan
-
-*   **Task 1: HTML Structure:** Create the basic HTML structure for the main page of the application in `index.html`.
-*   **Task 2: CSS Styling:** Implement the design and layout for the application in `style.css`.
-*   **Task 3: JavaScript Logic:** Add the core application logic to `main.js` for generating and displaying the lottery numbers.
+1.  **UIの作成 (`index.html`):**
+    -   ファイル選択のための`<input type="file" multiple>`を設置する。
+    -   予測実行のトリガーとなる`<button>`を設置する。
+    -   結果を表示するための要素（例：`<div>`）を配置する。
+2.  **スタイリング (`style.css`):**
+    -   モダンで直感的なデザインを適用する。
+    -   ファイル入力、ボタン、結果表示エリアのスタイルを整える。
+3.  **ロジックの実装 (`main.js`):**
+    -   UIのロジックをカプセル化するために、`<box-estimator>`というWebコンポーネントを作成する。
+    -   ファイル入力の変更を監視し、選択されたファイル数を取得する。
+    -   ボタンクリック時に、ファイル数に基づいて箱の数を計算する（例：5アイテムごとに1箱）。
+    -   計算結果を画面に表示する。
