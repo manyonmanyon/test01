@@ -9,6 +9,8 @@ class BoxEstimator extends HTMLElement {
         :host {
           display: block;
         }
+        .hidden { display: none !important; }
+
         /* --- General Container --- */
         .container {
           padding: 2rem;
@@ -70,13 +72,26 @@ class BoxEstimator extends HTMLElement {
           transition: transform 0.2s, box-shadow 0.2s;
           box-shadow: 0 4px 15px rgba(94, 93, 240, 0.4);
           min-width: 250px;
+          position: relative;
         }
         .button:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(94, 93, 240, 0.5); }
         .button:disabled {
           background-image: none; background-color: #bdc3c7;
           cursor: not-allowed; transform: none; box-shadow: none;
         }
+        .button-content { display: contents; }
         .button svg { width: 20px; height: 20px; }
+
+        /* --- Spinner --- */
+        .spinner {
+          width: 20px; height: 20px; border-radius: 50%;
+          border: 3px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
 
         /* --- Result --- */
         #result {
@@ -100,8 +115,11 @@ class BoxEstimator extends HTMLElement {
               <progress id="progress-bar" value="0" max="100"></progress>
             </div>
             <button id="next-btn" class="button" disabled>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-1.125 0-2.25 1.125-2.25 2.25v15c0 1.125 1.125 2.25 2.25 2.25h10.5c1.125 0 2.25-1.125 2.25-2.25v-15c0-1.125-1.125-2.25-2.25-2.25h-4.5m-7.5 15l4.125-4.125a3.375 3.375 0 015.25 0L21 18.75m-18 0h18" /></svg>
-              <span>アップロードして次へ</span>
+              <div class="button-content">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.125 2.25h-4.5c-1.125 0-2.25 1.125-2.25 2.25v15c0 1.125 1.125 2.25 2.25 2.25h10.5c1.125 0 2.25-1.125 2.25-2.25v-15c0-1.125-1.125-2.25-2.25-2.25h-4.5m-7.5 15l4.125-4.125a3.375 3.375 0 015.25 0L21 18.75m-18 0h18" /></svg>
+                <span>アップロードして次へ</span>
+              </div>
+              <div class="spinner hidden"></div>
             </button>
         </div>
 
@@ -143,7 +161,8 @@ class BoxEstimator extends HTMLElement {
     const dropZone = this.shadowRoot.querySelector('#drop-zone');
     const progressContainer = this.shadowRoot.querySelector('#progress-container');
     const progressBar = this.shadowRoot.querySelector('#progress-bar');
-    const nextBtnText = this.shadowRoot.querySelector('#next-btn span');
+    const nextBtnContent = this.shadowRoot.querySelector('#next-btn .button-content');
+    const nextBtnSpinner = this.shadowRoot.querySelector('#next-btn .spinner');
     const uploadArea = this.shadowRoot.querySelector('#upload-area');
     const wizard = this.shadowRoot.querySelector('#wizard');
     const bookSizeSelect = this.shadowRoot.querySelector('#book-size');
@@ -192,7 +211,8 @@ class BoxEstimator extends HTMLElement {
       }
 
       nextBtn.disabled = true;
-      nextBtnText.textContent = 'アップロード中...';
+      nextBtnContent.classList.add('hidden');
+      nextBtnSpinner.classList.remove('hidden');
       resultDiv.classList.remove('visible');
       progressContainer.style.display = 'block';
       progressBar.value = 0;
@@ -227,8 +247,10 @@ class BoxEstimator extends HTMLElement {
         resultDiv.textContent = 'エラー: ファイルのアップロードに失敗しました。';
         resultDiv.classList.add('visible');
         nextBtn.disabled = false;
-        nextBtnText.textContent = 'アップロードして次へ';
         progressContainer.style.display = 'none';
+      } finally {
+        nextBtnContent.classList.remove('hidden');
+        nextBtnSpinner.classList.add('hidden');
       }
     });
 
